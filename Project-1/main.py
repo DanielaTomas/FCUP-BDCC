@@ -65,8 +65,54 @@ def relations():
 @app.route('/image_info')
 def image_info():
     image_id = flask.request.args.get('image_id')
-    # TODO
-    return flask.render_template('not_implemented.html')
+
+    #Fetch classes
+    query = '''
+        SELECT Description
+        FROM `bdcc24project.openimages.image_labels`
+        JOIN `bdcc24project.openimages.classes` USING(Label)
+        WHERE imageId = @imageId
+    '''
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("imageId", "STRING", image_id),
+        ]
+    )
+    
+    classes_results = BQ_CLIENT.query(query, job_config=job_config).result()
+
+    #TODO Fetch relations
+    ## é preciso ir buscar as labels E de seguida ir buscar os seus nomes reais...
+    ## possivelmente tudo na mesma query para eficiencia... 
+    ## melhor ainda se desse para juntar com a query de cima
+    query = '''
+        SELECT Description
+        FROM `bdcc24project.openimages.image_labels`
+        JOIN `bdcc24project.openimages.classes` USING(Label)
+        WHERE imageId = @imageId
+    '''
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("imageId", "STRING", image_id),
+        ]
+    )
+    
+    classes_results = BQ_CLIENT.query(query, job_config=job_config).result()
+
+    #Fetch image url
+    ## e preciso encher o bucket com as imagens, de momento esta vazio
+    ## mas em principio e como está em baixo.
+    blob = APP_BUCKET.blob(image_id)
+
+    # Generate signed URL with expiry time (in seconds)
+    img_url = blob.generate_signed_url(expiration=3600)
+
+    logging.info('classes: results={}'.format(classes_results.total_rows))
+    logging.info('img url is: results={}'.format(img_url))
+    data = dict(classes_results=classes_results)
+    return flask.render_template('image_info.html', image_id=image_id, data=data,img_url=img_url)
 
 @app.route('/image_search')
 def image_search():
