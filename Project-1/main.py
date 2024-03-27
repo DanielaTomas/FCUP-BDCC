@@ -57,9 +57,19 @@ def classes():
 
 @app.route('/relations')
 def relations():
-    # TODO
-    return flask.render_template('not_implemented.html')
+    #Fetch relations
+    relations_results = BQ_CLIENT.query(
+    '''
+        SELECT DISTINCT Relation, COUNT(Relation)
+        FROM `bdcc24project.openimages.relations`
+        GROUP BY Relation
+        ORDER BY Relation
+    '''
+    ).result()
 
+    logging.info('relations: results={}'.format(relations_results.total_rows))
+    data = dict(relations_results=relations_results)
+    return flask.render_template('relations.html', data=data)
 
 
 @app.route('/image_info')
@@ -72,6 +82,7 @@ def image_info():
         FROM `bdcc24project.openimages.image_labels`
         JOIN `bdcc24project.openimages.classes` USING(Label)
         WHERE imageId = @imageId
+        ORDER BY Description
     '''
 
     job_config = bigquery.QueryJobConfig(
@@ -82,15 +93,14 @@ def image_info():
     
     classes_results = BQ_CLIENT.query(query, job_config=job_config).result()
 
-    #TODO Fetch relations
-    ## é preciso ir buscar as labels E de seguida ir buscar os seus nomes reais...
-    ## possivelmente tudo na mesma query para eficiencia... 
-    ## melhor ainda se desse para juntar com a query de cima
+    #Fetch relations
     query = '''
-        SELECT Description
-        FROM `bdcc24project.openimages.image_labels`
-        JOIN `bdcc24project.openimages.classes` USING(Label)
-        WHERE imageId = @imageId
+        SELECT c1.Description, Relation, c2.Description
+        FROM bdcc24project.openimages.classes AS c1
+        JOIN bdcc24project.openimages.relations ON c1.Label = Label1
+        JOIN bdcc24project.openimages.classes AS c2 ON c2.Label = Label2 
+        WHERE ImageId = @imageId
+        GROUP BY c1.Description, Relation, c2.Description
     '''
 
     job_config = bigquery.QueryJobConfig(
@@ -99,10 +109,10 @@ def image_info():
         ]
     )
     
-    classes_results = BQ_CLIENT.query(query, job_config=job_config).result()
+    relations_results = BQ_CLIENT.query(query, job_config=job_config).result()
 
     #Fetch image url
-    ## e preciso encher o bucket com as imagens, de momento esta vazio
+    ##TODO e preciso encher o bucket com as imagens, de momento esta vazio
     ## mas em principio e como está em baixo.
     blob = APP_BUCKET.blob(image_id)
 
@@ -110,16 +120,41 @@ def image_info():
     img_url = blob.generate_signed_url(expiration=3600)
 
     logging.info('classes: results={}'.format(classes_results.total_rows))
+    logging.info('relations: results={}'.format(relations_results.total_rows))
     logging.info('img url is: results={}'.format(img_url))
-    data = dict(classes_results=classes_results)
+    data = dict(classes_results=classes_results,relations_results=relations_results)
     return flask.render_template('image_info.html', image_id=image_id, data=data,img_url=img_url)
+
 
 @app.route('/image_search')
 def image_search():
     description = flask.request.args.get('description', default='')
     image_limit = flask.request.args.get('image_limit', default=10, type=int)
-    # TODO
-    return flask.render_template('not_implemented.html')
+    #Fetch image search
+    query = '''
+        SELECT ImageId
+        FROM bdcc24project.openimages.classes
+        JOIN bdcc24project.openimages.image_labels USING (Label)
+        WHERE Description = @description
+        GROUP BY ImageId
+        LIMIT @image_limit
+    '''
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("description", "STRING", description),
+            bigquery.ScalarQueryParameter("image_limit", "INTEGER", image_limit)
+        ]
+    )
+
+    image_search_results = BQ_CLIENT.query(query, job_config=job_config).result()
+    count_result = image_search_results.total_rows
+    #Fetch image url
+    ##TODO e preciso encher o bucket com as imagens, de momento esta vazio
+    logging.info('image_search: results={}'.format(image_search_results.total_rows))
+    data = dict(image_search_results=image_search_results)
+    return flask.render_template('image_search.html', data=data, count_result=count_result, description=description, image_limit=image_limit)
+
 
 @app.route('/relation_search')
 def relation_search():

@@ -3,7 +3,7 @@
 
 <body>
 
-<h1>Image info</h1>
+<h1>{{ image_id }}</h1>
 
 <table>
     <tr>
@@ -19,7 +19,10 @@
             {% endfor %}
         </td>
         <td>
-            
+            {% for result in data.relations_results %}
+                <a href="/relation_search?relation={{ result[0] }}&class1={{ result[1] }}&class2={{ result[2] }}">{{ result[0] }} {{ result[1] }} {{ result[2] }}</a>
+                <br>
+            {% endfor %}
         </td>
         <td>
             <a href= "{{ img_url }}">

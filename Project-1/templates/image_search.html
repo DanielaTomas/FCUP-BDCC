@@ -1,0 +1,28 @@
+{% extends 'general-template.html'  %}
+{% block content %}
+
+<body>
+
+<h1>{{ description }}</h1>
+<p> {{ count_result }}  results out of {{ image_limit }} requested.</p>
+<table>
+    <tr>
+        <th>ImageId</th>
+        <th>Image</th>
+    </tr>
+    {% for result in data.image_search_results %}
+    <tr>
+        <td>
+            {{ result[0] }}   
+            <br>
+        </td>
+        <td>
+            <a href= "">
+                <img href= "">
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
