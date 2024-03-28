@@ -4,7 +4,7 @@
 <body>
 
 <h1>{{ description }}</h1>
-<p> {{ count_result }}  results out of {{ image_limit }} requested.</p>
+<p> {{ data.image_search_results.total_rows }}  results out of {{ image_limit }} requested.</p>
 <table>
     <tr>
         <th>ImageId</th>
@@ -13,7 +13,7 @@
     {% for result in data.image_search_results %}
     <tr>
         <td>
-            {{ result[0] }}   
+            <a href="/image_info?image_id={{ result[0] }}">{{ result[0] }}</a>
             <br>
         </td>
         <td>

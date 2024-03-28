@@ -1,0 +1,43 @@
+{% extends 'general-template.html'  %}
+{% block content %}
+
+<body>
+
+<h1>{{ class1 }} → {{ relation }} → {{ class2 }}</h1>
+<p> {{ data.relation_search_results.total_rows }}  results out of {{ image_limit }} requested.</p>
+<table>
+    <tr>
+        <th>ImageId</th>
+        <th>Class 1</th>
+        <th>Relation</th>
+        <th>Class 2</th>
+        <th>Image</th>
+    </tr>
+    {% for result in data.relation_search_results %}
+    <tr>
+        <td>
+            <a href="/image_info?image_id={{ result[0] }}">{{ result[0] }}</a>
+            <br>
+        </td>
+        <td>
+            <a href="/image_search?description={{ result[1] }}">{{ result[1] }}</a>
+            <br>
+        </td>
+        <td>
+            <a href="/relation_search?relation={{ relation }}">{{ relation }}</a>
+            <br>
+        </td>
+        <td>
+            <a href="/image_search?description={{ result[2] }}">{{ result[2] }}</a>
+            <br>
+        </td>
+        <td>
+            <a href= "">
+                <img href= "">
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

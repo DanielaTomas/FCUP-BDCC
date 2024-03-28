@@ -148,12 +148,12 @@ def image_search():
     )
 
     image_search_results = BQ_CLIENT.query(query, job_config=job_config).result()
-    count_result = image_search_results.total_rows
+
     #Fetch image url
     ##TODO e preciso encher o bucket com as imagens, de momento esta vazio
     logging.info('image_search: results={}'.format(image_search_results.total_rows))
     data = dict(image_search_results=image_search_results)
-    return flask.render_template('image_search.html', data=data, count_result=count_result, description=description, image_limit=image_limit)
+    return flask.render_template('image_search.html', data=data, description=description, image_limit=image_limit)
 
 
 @app.route('/relation_search')
@@ -162,8 +162,34 @@ def relation_search():
     relation = flask.request.args.get('relation', default='%')
     class2 = flask.request.args.get('class2', default='%')
     image_limit = flask.request.args.get('image_limit', default=10, type=int)
-    # TODO
-    return flask.render_template('not_implemented.html')
+    #Fetch relation search
+    query = '''
+        SELECT ImageId, c1.Description, c2.Description
+        FROM bdcc24project.openimages.relations
+        JOIN bdcc24project.openimages.image_labels USING (ImageId)
+        JOIN bdcc24project.openimages.classes c1 ON c1.Label = Label1 AND c1.Description LIKE CONCAT('%', @class1, '%')
+        JOIN bdcc24project.openimages.classes c2 ON c2.Label = Label2 AND c2.Description LIKE CONCAT('%', @class2, '%')
+        WHERE Relation = @relation AND @class1 <> "" AND @class2 <> "" 
+        GROUP BY ImageId, c1.Description, c2.Description
+        ORDER BY ImageId, c1.Description, c2.Description
+        LIMIT @image_limit
+    '''
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("class1", "STRING", class1),
+            bigquery.ScalarQueryParameter("relation", "STRING", relation),
+            bigquery.ScalarQueryParameter("class2", "STRING", class2),
+            bigquery.ScalarQueryParameter("image_limit", "INTEGER", image_limit),
+        ]
+    )
+
+    relation_search_results = BQ_CLIENT.query(query, job_config=job_config).result()
+    #Fetch image url
+    ##TODO
+    logging.info('relation_search: results={}'.format(relation_search_results.total_rows))
+    data = dict(relation_search_results=relation_search_results)
+    return flask.render_template('relation_search.html', data=data, class1=class1, relation=relation, class2=class2, image_limit=image_limit)
 
 
 @app.route('/image_classify_classes')
