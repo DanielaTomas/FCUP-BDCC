@@ -25,7 +25,7 @@ app = flask.Flask(__name__)
 logging.info('Initialising BigQuery client')
 BQ_CLIENT = bigquery.Client()
 
-BUCKET_NAME = PROJECT + '.appspot.com'
+BUCKET_NAME = PROJECT + '-images'
 logging.info('Initialising access to storage bucket {}'.format(BUCKET_NAME))
 APP_BUCKET = storage.Client().bucket(BUCKET_NAME)
 
@@ -46,8 +46,8 @@ def classes():
     results = BQ_CLIENT.query(
     '''
         Select Description, COUNT(*) AS NumImages
-        FROM `bdcc24project.openimages.image_labels`
-        JOIN `bdcc24project.openimages.classes` USING(Label)
+        FROM `bdcc-project1-417811.openimages.image_labels`
+        JOIN `bdcc-project1-417811.openimages.classes` USING(Label)
         GROUP BY Description
         ORDER BY Description
     ''').result()
@@ -61,7 +61,7 @@ def relations():
     relations_results = BQ_CLIENT.query(
     '''
         SELECT DISTINCT Relation, COUNT(Relation)
-        FROM `bdcc24project.openimages.relations`
+        FROM `bdcc-project1-417811.openimages.relations`
         GROUP BY Relation
         ORDER BY Relation
     '''
@@ -79,8 +79,8 @@ def image_info():
     #Fetch classes
     query = '''
         SELECT Description
-        FROM `bdcc24project.openimages.image_labels`
-        JOIN `bdcc24project.openimages.classes` USING(Label)
+        FROM `bdcc-project1-417811.openimages.image_labels`
+        JOIN `bdcc-project1-417811.openimages.classes` USING(Label)
         WHERE imageId = @imageId
         ORDER BY Description
     '''
@@ -96,9 +96,9 @@ def image_info():
     #Fetch relations
     query = '''
         SELECT c1.Description, Relation, c2.Description
-        FROM bdcc24project.openimages.classes AS c1
-        JOIN bdcc24project.openimages.relations ON c1.Label = Label1
-        JOIN bdcc24project.openimages.classes AS c2 ON c2.Label = Label2 
+        FROM bdcc-project1-417811.openimages.classes AS c1
+        JOIN bdcc-project1-417811.openimages.relations ON c1.Label = Label1
+        JOIN bdcc-project1-417811.openimages.classes AS c2 ON c2.Label = Label2 
         WHERE ImageId = @imageId
         GROUP BY c1.Description, Relation, c2.Description
     '''
@@ -111,19 +111,12 @@ def image_info():
     
     relations_results = BQ_CLIENT.query(query, job_config=job_config).result()
 
-    #Fetch image url
-    ##TODO e preciso encher o bucket com as imagens, de momento esta vazio
-    ## mas em principio e como está em baixo.
-    blob = APP_BUCKET.blob(image_id)
-
-    # Generate signed URL with expiry time (in seconds)
-    img_url = blob.generate_signed_url(expiration=3600)
 
     logging.info('classes: results={}'.format(classes_results.total_rows))
     logging.info('relations: results={}'.format(relations_results.total_rows))
     logging.info('img url is: results={}'.format(img_url))
     data = dict(classes_results=classes_results,relations_results=relations_results)
-    return flask.render_template('image_info.html', image_id=image_id, data=data,img_url=img_url)
+    return flask.render_template('image_info.html', image_id=image_id, data=data)
 
 
 @app.route('/image_search')
@@ -133,8 +126,8 @@ def image_search():
     #Fetch image search
     query = '''
         SELECT ImageId
-        FROM bdcc24project.openimages.classes
-        JOIN bdcc24project.openimages.image_labels USING (Label)
+        FROM bdcc-project1-417811.openimages.classes
+        JOIN bdcc-project1-417811.openimages.image_labels USING (Label)
         WHERE Description = @description
         GROUP BY ImageId
         LIMIT @image_limit
@@ -165,10 +158,10 @@ def relation_search():
     #Fetch relation search
     query = '''
         SELECT ImageId, c1.Description, c2.Description
-        FROM bdcc24project.openimages.relations
-        JOIN bdcc24project.openimages.image_labels USING (ImageId)
-        JOIN bdcc24project.openimages.classes c1 ON c1.Label = Label1 AND c1.Description LIKE CONCAT('%', @class1, '%')
-        JOIN bdcc24project.openimages.classes c2 ON c2.Label = Label2 AND c2.Description LIKE CONCAT('%', @class2, '%')
+        FROM bdcc-project1-417811.openimages.relations
+        JOIN bdcc-project1-417811.openimages.image_labels USING (ImageId)
+        JOIN bdcc-project1-417811.openimages.classes c1 ON c1.Label = Label1 AND c1.Description LIKE CONCAT('%', @class1, '%')
+        JOIN bdcc-project1-417811.openimages.classes c2 ON c2.Label = Label2 AND c2.Description LIKE CONCAT('%', @class2, '%')
         WHERE Relation = @relation AND @class1 <> "" AND @class2 <> "" 
         GROUP BY ImageId, c1.Description, c2.Description
         ORDER BY ImageId, c1.Description, c2.Description
@@ -208,7 +201,6 @@ def image_classify():
             classifications = TF_CLASSIFIER.classify(file, min_confidence)
             blob = storage.Blob(file.filename, APP_BUCKET)
             blob.upload_from_file(file, blob, content_type=file.mimetype)
-            blob.make_public()
             logging.info('image_classify: filename={} blob={} classifications={}'\
                 .format(file.filename,blob.name,classifications))
             results.append(dict(bucket=APP_BUCKET,
