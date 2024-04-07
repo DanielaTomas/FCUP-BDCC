@@ -20,7 +20,7 @@
         </td>
         <td>
             {% for result in data.relations_results %}
-                <a href="/relation_search?relation={{ result[0] }}&class1={{ result[1] }}&class2={{ result[2] }}">{{ result[0] }} {{ result[1] }} {{ result[2] }}</a>
+                <a href="/relation_search?relation={{ result[1] }}&class1={{ result[0] }}&class2={{ result[2] }}">{{ result[0] }} {{ result[1] }} {{ result[2] }}</a>
                 <br>
             {% endfor %}
         </td>
