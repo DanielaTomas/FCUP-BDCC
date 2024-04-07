@@ -114,7 +114,6 @@ def image_info():
 
     logging.info('classes: results={}'.format(classes_results.total_rows))
     logging.info('relations: results={}'.format(relations_results.total_rows))
-    logging.info('img url is: results={}'.format(img_url))
     data = dict(classes_results=classes_results,relations_results=relations_results)
     return flask.render_template('image_info.html', image_id=image_id, data=data)
 
@@ -217,4 +216,4 @@ def image_classify():
 if __name__ == '__main__':
     # When invoked as a program.
     logging.info('Starting app')
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True)
